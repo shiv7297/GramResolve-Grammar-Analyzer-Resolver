@@ -5,7 +5,7 @@
 #include <map>
 #include <set>
 #include <string>
-#include "Grammar.h"
+#include "../grammar/Grammar.h"
 
 class FirstFollowEngine {
 private:
@@ -14,11 +14,14 @@ private:
     std::map<std::string, bool> NULLABLE;
 
 public:
+    FirstFollowEngine() = default;
+
     void computeFIRST(const Grammar &g);
     void computeFOLLOW(const Grammar &g);
 
     const std::set<std::string>& getFIRST(const std::string &symbol) const;
     const std::set<std::string>& getFOLLOW(const std::string &symbol) const;
+    bool isNullable(const std::string &symbol) const;
 
     void display() const;
 };
