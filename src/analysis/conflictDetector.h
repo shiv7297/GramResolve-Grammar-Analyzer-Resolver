@@ -4,7 +4,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
-#include "ParserTable.h"
+#include "../parser/parserTable.h"  // relative path
 
 class ConflictDetector {
 private:
