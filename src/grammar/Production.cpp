@@ -1,22 +1,26 @@
-// src/grammar/Production.cpp
 #include "Production.h"
 #include <iostream>
-#include <sstream>
+
 using namespace std;
 
-void Production::addAlternative(const vector<string> &symbols) {
-    rhs.push_back(symbols);
+/// Add a new right-hand side alternative
+void Production::addAlternative(const vector<string> &alt) {
+    rhs.push_back(alt);
 }
 
-void Production::display() const {
-    cout << lhs << " -> ";
+/// Convert production to string (used in Grammar::display)
+string Production::toString() const {
+    string out = lhs + " -> ";
     for (size_t i = 0; i < rhs.size(); ++i) {
-        const auto &alt = rhs[i];
-        for (size_t j = 0; j < alt.size(); ++j) {
-            cout << alt[j];
-            if (j + 1 < alt.size()) cout << " ";
-        }
-        if (i + 1 < rhs.size()) cout << " | ";
+        for (const auto &sym : rhs[i])
+            out += sym + " ";
+        if (i < rhs.size() - 1)
+            out += "| ";
     }
-    cout << endl;
+    return out;
+}
+
+/// Print production nicely to console
+void Production::display() const {
+    cout << toString() << endl;
 }

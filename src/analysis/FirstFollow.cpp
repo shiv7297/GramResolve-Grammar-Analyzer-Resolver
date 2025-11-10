@@ -1,68 +1,59 @@
 #include "FirstFollow.h"
 #include <iostream>
-#include <stack>
+#include <queue>
 #include <algorithm>
 
-// Utility: add one set into another; returns true if FIRST changed
-static bool addSet(std::set<std::string>& dest, const std::set<std::string>& src) {
-    size_t oldSize = dest.size();
-    dest.insert(src.begin(), src.end());
-    return dest.size() != oldSize;
-}
+using namespace std;
 
-// Utility: check if vector of symbols can all derive epsilon
-static bool allNullable(const std::vector<std::string>& symbols,
-                        const std::map<std::string, bool>& nullable) {
-    for (const auto& s : symbols) {
-        if (nullable.find(s) == nullable.end() || !nullable.at(s))
-            return false;
-    }
-    return true;
-}
-
-// ------------------------------------------------------------
-// Compute FIRST sets
-// ------------------------------------------------------------
-void FirstFollowEngine::computeFIRST(const Grammar &g) {
+// ======================================================
+// 🧩 Compute FIRST sets for all grammar symbols
+// ======================================================
+void FirstFollowEngine::computeFIRST(const Grammar &grammar) {
     FIRST.clear();
     NULLABLE.clear();
 
-    // Initialize FIRST sets: terminals map to themselves
-    for (const auto& t : g.getTerminals()) {
-        FIRST[t].insert(t);
+    // Initialize FIRST sets for terminals and nonterminals
+    for (const auto &t : grammar.getTerminals()) {
+        FIRST[t] = {t}; // FIRST(a) = {a} for terminals
         NULLABLE[t] = false;
     }
-
-    // Nonterminals start empty
-    for (const auto& nt : g.getNonTerminals()) {
-        FIRST[nt];          // ensure existence
+    for (const auto &nt : grammar.getNonTerminals()) {
+        FIRST[nt] = {};
         NULLABLE[nt] = false;
     }
+    FIRST["ε"] = {"ε"};
+    NULLABLE["ε"] = true;
 
     bool changed = true;
     while (changed) {
         changed = false;
 
-        for (const auto& prod : g.getProductions()) {
-            const std::string& A = prod.getLHS();
+        for (const auto &prod : grammar.getProductions()) {
+            const string &A = prod.getLHS();
 
-            for (const auto& rhs : prod.getRHS()) {
-                bool allEps = true;
+            for (const auto &rhs : prod.getRHS()) {
+                bool allNullable = true;
 
-                for (const auto& sym : rhs) {
-                    // Add FIRST(sym) \ {ε} to FIRST(A)
-                    for (const auto& f : FIRST[sym]) {
-                        if (f != "ε")
-                            changed |= FIRST[A].insert(f).second;
+                for (const string &symbol : rhs) {
+                    const auto &firstSym = FIRST[symbol];
+
+                    // Add FIRST(symbol) \ {ε} to FIRST(A)
+                    for (const auto &f : firstSym) {
+                        if (f != "ε" && FIRST[A].insert(f).second)
+                            changed = true;
                     }
 
-                    if (NULLABLE[sym]) continue;
-                    allEps = false;
-                    break;
+                    // If ε not in FIRST(symbol), stop
+                    if (firstSym.find("ε") == firstSym.end()) {
+                        allNullable = false;
+                        break;
+                    }
                 }
 
-                if (allEps) {
-                    changed |= FIRST[A].insert("ε").second;
+                // If all symbols in RHS can produce ε → ε ∈ FIRST(A)
+                if (allNullable) {
+                    if (FIRST[A].insert("ε").second)
+                        changed = true;
                     NULLABLE[A] = true;
                 }
             }
@@ -70,57 +61,52 @@ void FirstFollowEngine::computeFIRST(const Grammar &g) {
     }
 }
 
-// ------------------------------------------------------------
-// Compute FOLLOW sets
-// ------------------------------------------------------------
-void FirstFollowEngine::computeFOLLOW(const Grammar &g) {
+// ======================================================
+// 🧭 Compute FOLLOW sets for all nonterminals
+// ======================================================
+void FirstFollowEngine::computeFOLLOW(const Grammar &grammar) {
     FOLLOW.clear();
 
-    // Initialize empty FOLLOW sets
-    for (const auto& nt : g.getNonTerminals())
-        FOLLOW[nt];
+    // Initialize empty sets
+    for (const auto &nt : grammar.getNonTerminals())
+        FOLLOW[nt] = {};
 
-    // Add $ to FOLLOW(start)
-    FOLLOW[g.getStartSymbol()].insert("$");
+    // Start symbol gets $
+    FOLLOW[grammar.getStartSymbol()].insert("$");
 
     bool changed = true;
     while (changed) {
         changed = false;
 
-        for (const auto& prod : g.getProductions()) {
-            const std::string& A = prod.getLHS();
+        for (const auto &prod : grammar.getProductions()) {
+            const string &A = prod.getLHS();
 
-            for (const auto& rhs : prod.getRHS()) {
+            for (const auto &rhs : prod.getRHS()) {
                 for (size_t i = 0; i < rhs.size(); ++i) {
-                    const std::string& B = rhs[i];
-                    if (g.getNonTerminals().count(B) == 0) continue; // skip terminals
+                    const string &B = rhs[i];
+                    if (!grammar.isNonTerminal(B))
+                        continue;
 
-                    // Everything after B
-                    std::set<std::string> trailer;
-
-                    if (i + 1 < rhs.size()) {
-                        for (size_t j = i + 1; j < rhs.size(); ++j) {
-                            const std::string& beta = rhs[j];
-
-                            // Add FIRST(beta) \ {ε}
-                            for (const auto& f : FIRST[beta]) {
-                                if (f != "ε")
-                                    changed |= FOLLOW[B].insert(f).second;
-                            }
-
-                            // Stop if beta not nullable
-                            if (!NULLABLE[beta])
-                                break;
-
-                            // If reached end and all nullable → add FOLLOW(A)
-                            if (j == rhs.size() - 1)
-                                for (const auto& f : FOLLOW[A])
-                                    changed |= FOLLOW[B].insert(f).second;
+                    // Everything in FIRST(β) except ε → FOLLOW(B)
+                    bool epsilonInAll = true;
+                    for (size_t j = i + 1; j < rhs.size(); ++j) {
+                        const string &beta = rhs[j];
+                        for (const auto &f : FIRST[beta]) {
+                            if (f != "ε" && FOLLOW[B].insert(f).second)
+                                changed = true;
                         }
-                    } else {
-                        // B is at end → add FOLLOW(A)
-                        for (const auto& f : FOLLOW[A])
-                            changed |= FOLLOW[B].insert(f).second;
+                        if (FIRST[beta].find("ε") == FIRST[beta].end()) {
+                            epsilonInAll = false;
+                            break;
+                        }
+                    }
+
+                    // If β ⇒ ε or B is last in RHS → FOLLOW(A) ⊆ FOLLOW(B)
+                    if (i == rhs.size() - 1 || epsilonInAll) {
+                        for (const auto &f : FOLLOW[A]) {
+                            if (FOLLOW[B].insert(f).second)
+                                changed = true;
+                        }
                     }
                 }
             }
@@ -128,17 +114,17 @@ void FirstFollowEngine::computeFOLLOW(const Grammar &g) {
     }
 }
 
-// ------------------------------------------------------------
-// Accessors
-// ------------------------------------------------------------
+// ======================================================
+// 🧾 Accessor Methods
+// ======================================================
 const std::set<std::string>& FirstFollowEngine::getFIRST(const std::string &symbol) const {
-    static std::set<std::string> empty;
+    static const std::set<std::string> empty;
     auto it = FIRST.find(symbol);
     return (it != FIRST.end()) ? it->second : empty;
 }
 
 const std::set<std::string>& FirstFollowEngine::getFOLLOW(const std::string &symbol) const {
-    static std::set<std::string> empty;
+    static const std::set<std::string> empty;
     auto it = FOLLOW.find(symbol);
     return (it != FOLLOW.end()) ? it->second : empty;
 }
@@ -148,35 +134,35 @@ bool FirstFollowEngine::isNullable(const std::string &symbol) const {
     return (it != NULLABLE.end()) ? it->second : false;
 }
 
-// ------------------------------------------------------------
-// Display
-// ------------------------------------------------------------
+// ======================================================
+// 🖨️ Display FIRST and FOLLOW sets
+// ======================================================
 void FirstFollowEngine::display() const {
-    std::cout << "\n===== FIRST & FOLLOW Sets =====\n";
+    cout << "\n===== FIRST & FOLLOW Sets =====\n";
 
-    std::cout << "\nFIRST sets:\n";
-    for (const auto& p : FIRST) {
-        std::cout << "FIRST(" << p.first << ") = { ";
+    cout << "\nFIRST sets:\n";
+    for (const auto &p : FIRST) {
+        cout << "FIRST(" << p.first << ") = { ";
         bool first = true;
-        for (const auto& s : p.second) {
-            if (!first) std::cout << ", ";
-            std::cout << s;
+        for (const auto &sym : p.second) {
+            if (!first) cout << ", ";
+            cout << sym;
             first = false;
         }
-        std::cout << " }\n";
+        cout << " }\n";
     }
 
-    std::cout << "\nFOLLOW sets:\n";
-    for (const auto& p : FOLLOW) {
-        std::cout << "FOLLOW(" << p.first << ") = { ";
+    cout << "\nFOLLOW sets:\n";
+    for (const auto &p : FOLLOW) {
+        cout << "FOLLOW(" << p.first << ") = { ";
         bool first = true;
-        for (const auto& s : p.second) {
-            if (!first) std::cout << ", ";
-            std::cout << s;
+        for (const auto &sym : p.second) {
+            if (!first) cout << ", ";
+            cout << sym;
             first = false;
         }
-        std::cout << " }\n";
+        cout << " }\n";
     }
 
-    std::cout << "===============================\n";
+    cout << "===============================\n";
 }
