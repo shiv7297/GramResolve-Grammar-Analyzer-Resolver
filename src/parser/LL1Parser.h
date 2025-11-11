@@ -24,6 +24,10 @@ public:
     LL1Parser(const Grammar &g, const FirstFollowEngine &f)
         : grammar(g), ff(f) {}
 
+     const std::map<std::string, std::map<std::string, std::string>>& getTable() const {
+        return parsingTable;
+    }
+
     // 🧱 Build LL(1) parsing table (no args needed; uses internal grammar + ff)
     void buildTable();
 

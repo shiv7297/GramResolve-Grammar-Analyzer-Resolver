@@ -19,21 +19,28 @@ void LL1Parser::buildTable() {
         const string &A = prod.getLHS();
 
         for (const auto &rhs : prod.getRHS()) {
-            // ✅ FIX: Call computeFirstOfString(rhs) (no ff argument)
             set<string> firstSet = computeFirstOfString(rhs);
 
-            // Rule 1: For each terminal 'a' in FIRST(rhs), add A → rhs
+            // Rule 1: FIRST(rhs)
             for (const auto &a : firstSet) {
                 if (a != "ε") {
-                    parsingTable[A][a] = join(rhs, " ");
+                    string rhsStr = join(rhs, " ");
+                    if (parsingTable[A][a].empty())
+                        parsingTable[A][a] = rhsStr;
+                    else
+                        parsingTable[A][a] += "|" + rhsStr;  // ✅ append to detect conflict
                 }
             }
 
-            // Rule 2: If ε in FIRST(rhs), for each b in FOLLOW(A), add A → rhs
+            // Rule 2: ε in FIRST(rhs) → FOLLOW(A)
             if (firstSet.find("ε") != firstSet.end()) {
                 const auto &followA = ff.getFOLLOW(A);
                 for (const auto &b : followA) {
-                    parsingTable[A][b] = join(rhs, " ");
+                    string rhsStr = join(rhs, " ");
+                    if (parsingTable[A][b].empty())
+                        parsingTable[A][b] = rhsStr;
+                    else
+                        parsingTable[A][b] += "|" + rhsStr;  // ✅ append conflict
                 }
             }
         }
@@ -41,6 +48,7 @@ void LL1Parser::buildTable() {
 
     cout << "✅ LL(1) Table construction complete.\n";
 }
+
 
 // ==========================================================
 // 🧩 Compute FIRST(α) where α is a RHS symbol sequence
