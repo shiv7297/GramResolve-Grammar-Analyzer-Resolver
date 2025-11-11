@@ -1,96 +1,124 @@
 #include "conflictDetector.h"
-#include <set>
-#include <map>
 #include <sstream>
+#include <set>
+#include <regex>
+using namespace std;
 
-// -------------------------------------------------------------
-// Detect LL(1) Conflicts
-// -------------------------------------------------------------
-void ConflictDetector::detectLL1Conflicts(const ParserTable &table) {
-    ll1Conflicts.clear();
+// helper to split strings by '|'
+static vector<string> splitActions(const string &s) {
+    vector<string> parts;
+    stringstream ss(s);
+    string part;
+    while (getline(ss, part, '|')) {
+        if (!part.empty())
+            parts.push_back(part);
+    }
+    return parts;
+}
 
-    // LL(1) conflict = multiple productions for same [NonTerminal, Terminal]
-    for (const auto &row : table.getTable()) {
-        const std::string &nonTerminal = row.first;
-        const auto &entries = row.second;
+// ---------------------------------------------------------------
+// LL(1) Conflict Detection
+// ---------------------------------------------------------------
+vector<Conflict> ConflictDetector::detectLL1Conflicts(
+    const Grammar &grammar,
+    const FirstFollowEngine &ff,
+    const map<string, map<string, string>> &table
+) {
+    vector<Conflict> conflicts;
 
-        for (const auto &entry : entries) {
-            const std::string &terminal = entry.first;
-            const auto &actions = entry.second;
+    for (const auto &ntPair : table) {
+        const string &nonTerminal = ntPair.first;
+        for (const auto &tPair : ntPair.second) {
+            const string &terminal = tPair.first;
+            const string &entry = tPair.second;
 
-            // If more than one action is mapped to the same cell => conflict
-            if (actions.size() > 1) {
-                std::ostringstream oss;
-                oss << "LL(1) conflict at [" << nonTerminal
-                    << ", " << terminal << "]: { ";
-                for (const auto &a : actions)
-                    oss << a << " ";
-                oss << "}";
-                ll1Conflicts.push_back(oss.str());
+            auto parts = splitActions(entry);
+            if (parts.size() > 1) {
+                Conflict c;
+                c.type = "LL(1) MULTIPLE ENTRIES";
+                c.location = "(" + nonTerminal + ", " + terminal + ")";
+                c.details = parts;
+                conflicts.push_back(c);
             }
         }
     }
+    return conflicts;
 }
 
-// -------------------------------------------------------------
-// Detect LR Conflicts
-// -------------------------------------------------------------
-void ConflictDetector::detectLRConflicts(const ParserTable &table) {
-    lrConflicts.clear();
+// ---------------------------------------------------------------
+// LR(0)/SLR Conflict Detection
+// ---------------------------------------------------------------
+vector<Conflict> ConflictDetector::detectLRConflicts(
+    const map<int, map<string, string>> &ACTION
+) {
+    vector<Conflict> conflicts;
+    regex shift("^s\\d+$"), reduce("^r\\d+$");
 
-    // Example detection: shift/reduce or reduce/reduce
-    for (const auto &row : table.getTable()) {
-        const std::string &state = row.first;
-        const auto &actions = row.second;
-
-        for (const auto &entry : actions) {
-            const std::string &symbol = entry.first;
-            const auto &ops = entry.second;
+    for (const auto &statePair : ACTION) {
+        int state = statePair.first;
+        for (const auto &symPair : statePair.second) {
+            const string &symbol = symPair.first;
+            auto parts = splitActions(symPair.second);
 
             bool hasShift = false, hasReduce = false;
-            for (const auto &op : ops) {
-                if (op.find("shift") != std::string::npos)
-                    hasShift = true;
-                if (op.find("reduce") != std::string::npos)
-                    hasReduce = true;
+            int shiftCount = 0, reduceCount = 0;
+
+            for (const string &p : parts) {
+                if (regex_match(p, shift)) { hasShift = true; shiftCount++; }
+                else if (regex_match(p, reduce)) { hasReduce = true; reduceCount++; }
             }
 
-            if (hasShift && hasReduce) {
-                std::ostringstream oss;
-                oss << "Shift/Reduce conflict at state " << state
-                    << ", symbol '" << symbol << "'";
-                lrConflicts.push_back(oss.str());
-            } else if (ops.size() > 1 && !hasShift) {
-                std::ostringstream oss;
-                oss << "Reduce/Reduce conflict at state " << state
-                    << ", symbol '" << symbol << "'";
-                lrConflicts.push_back(oss.str());
+            if (parts.size() > 1) {
+                if (hasShift && hasReduce) {
+                    conflicts.push_back({"Shift/Reduce Conflict",
+                        "(State " + to_string(state) + ", " + symbol + ")", parts});
+                } else if (shiftCount > 1) {
+                    conflicts.push_back({"Shift/Shift Conflict",
+                        "(State " + to_string(state) + ", " + symbol + ")", parts});
+                } else if (reduceCount > 1) {
+                    conflicts.push_back({"Reduce/Reduce Conflict",
+                        "(State " + to_string(state) + ", " + symbol + ")", parts});
+                } else {
+                    conflicts.push_back({"Multiple Actions",
+                        "(State " + to_string(state) + ", " + symbol + ")", parts});
+                }
             }
         }
     }
+
+    return conflicts;
 }
 
-// -------------------------------------------------------------
-// Report All Conflicts
-// -------------------------------------------------------------
-void ConflictDetector::report() const {
-    std::cout << "===== Conflict Report =====\n";
 
-    if (ll1Conflicts.empty() && lrConflicts.empty()) {
-        std::cout << "No grammar conflicts detected.\n";
+// ---------------------------------------------------------------
+// Display detected conflicts
+// ---------------------------------------------------------------
+void ConflictDetector::displayConflicts(const vector<Conflict> &conflicts) {
+    if (conflicts.empty()) {
+        cout << "✅ No conflicts detected!\n";
+        return;
     }
 
-    if (!ll1Conflicts.empty()) {
-        std::cout << "\n-- LL(1) Conflicts --\n";
-        for (const auto &c : ll1Conflicts)
-            std::cout << c << "\n";
+    cout << "\n⚠️  Conflicts detected:\n";
+    cout << left << setw(30) << "Type"
+         << setw(25) << "Location"
+         << "Details\n";
+    cout << string(80, '-') << "\n";
+
+    for (const auto &c : conflicts) {
+        cout << left << setw(30) << c.type
+             << setw(25) << c.location;
+        if (!c.details.empty())
+            cout << c.details[0];
+        cout << "\n";
+
+        for (size_t i = 1; i < c.details.size(); ++i)
+            cout << setw(55) << " " << c.details[i] << "\n";
     }
 
-    if (!lrConflicts.empty()) {
-        std::cout << "\n-- LR Conflicts --\n";
-        for (const auto &c : lrConflicts)
-            std::cout << c << "\n";
-    }
-
-    std::cout << "===========================\n";
+    cout << string(80, '-') << "\n";
+    cout << "Total Conflicts: " << conflicts.size() << "\n";
 }
+
+
+

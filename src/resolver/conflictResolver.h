@@ -1,16 +1,28 @@
-#ifndef CONFLICTRESOLVER_H
-#define CONFLICTRESOLVER_H
+// ===============================================================
+// File: conflictResolver.h
+// Description: Suggests solutions or explanations for parsing conflicts
+// ===============================================================
 
-#include <iostream>
+#ifndef CONFLICT_RESOLVER_H
+#define CONFLICT_RESOLVER_H
+
+#include <vector>
 #include <string>
-#include "Grammar.h"
-#include "Production.h"
+#include "../analysis/conflictDetector.h"
+#include "../grammar/Grammar.h"
 
 class ConflictResolver {
 public:
-    void suggestLeftFactoring(const Production &p) const;
-    void removeLeftRecursion(Grammar &g) const;
-    void applyTransformations(Grammar &g) const;
+    // Analyze and suggest resolutions for conflicts
+    static void resolveConflicts(
+        const std::vector<Conflict> &conflicts,
+        const Grammar &grammar
+    );
+
+private:
+    // Helper methods for specific conflict types
+    static void explainLL1Conflict(const Conflict &c, const Grammar &grammar);
+    static void explainLRConflict(const Conflict &c);
 };
 
 #endif
