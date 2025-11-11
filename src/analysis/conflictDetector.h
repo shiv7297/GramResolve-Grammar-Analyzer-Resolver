@@ -1,23 +1,41 @@
-#ifndef CONFLICTDETECTOR_H
-#define CONFLICTDETECTOR_H
+// ===============================================================
+// File: ConflictDetector.h
+// Description: Detects conflicts in LL(1) and LR(0)/SLR parsing tables
+// ===============================================================
 
-#include <iostream>
-#include <vector>
+#ifndef CONFLICT_DETECTOR_H
+#define CONFLICT_DETECTOR_H
+
 #include <string>
-#include "../parser/parserTable.h"  // relative path
+#include <map>
+#include <vector>
+#include <iostream>
+#include <iomanip>
+#include "../grammar/Grammar.h"
+#include "../analysis/FirstFollow.h"
+
+struct Conflict {
+    std::string type;      // e.g., "LL(1) MULTIPLE ENTRIES" or "Shift/Reduce"
+    std::string location;  // e.g., "(E, id)" or "(State 3, +)"
+    std::vector<std::string> details; // Conflicting entries
+};
 
 class ConflictDetector {
-private:
-    std::vector<std::string> ll1Conflicts;
-    std::vector<std::string> lrConflicts;
-
 public:
-    void detectLL1Conflicts(const ParserTable &table);
-    void detectLRConflicts(const ParserTable &table);
-    void report() const;
+    // Detect LL(1) conflicts (multiple productions in same cell)
+    static std::vector<Conflict> detectLL1Conflicts(
+        const Grammar &grammar,
+        const FirstFollowEngine &ff,
+        const std::map<std::string, std::map<std::string, std::string>> &table
+    );
 
-    const std::vector<std::string>& getLL1Conflicts() const { return ll1Conflicts; }
-    const std::vector<std::string>& getLRConflicts() const { return lrConflicts; }
+    // Detect LR(0)/SLR conflicts from ACTION table
+    static std::vector<Conflict> detectLRConflicts(
+        const std::map<int, std::map<std::string, std::string>> &ACTION
+    );
+
+    // Nicely print detected conflicts
+    static void displayConflicts(const std::vector<Conflict> &conflicts);
 };
 
 #endif
