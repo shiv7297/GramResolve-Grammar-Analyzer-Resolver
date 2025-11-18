@@ -1,11 +1,15 @@
 #include "LL1Parser.h"
+#include "../report/reportWriter.h"
+#include <sstream>
 #include <stack>
 #include <iostream>
-#include<vector>
-#include<algorithm>
+#include <algorithm>
 #include <iomanip>
 
 using namespace std;
+
+// A helper to print+save text
+#define OUT(x) do { cout << x; ReportWriter::get() << x; } while(0)
 
 // ==========================================================
 // 🎯 Build LL(1) Parsing Table
@@ -13,7 +17,7 @@ using namespace std;
 void LL1Parser::buildTable() {
     parsingTable.clear();
 
-    cout << "\nBuilding LL(1) Parsing Table...\n";
+    OUT("\nBuilding LL(1) Parsing Table...\n");
 
     for (const auto &prod : grammar.getProductions()) {
         const string &A = prod.getLHS();
@@ -28,7 +32,7 @@ void LL1Parser::buildTable() {
                     if (parsingTable[A][a].empty())
                         parsingTable[A][a] = rhsStr;
                     else
-                        parsingTable[A][a] += "|" + rhsStr;  // ✅ append to detect conflict
+                        parsingTable[A][a] += "|" + rhsStr; // conflict
                 }
             }
 
@@ -40,18 +44,17 @@ void LL1Parser::buildTable() {
                     if (parsingTable[A][b].empty())
                         parsingTable[A][b] = rhsStr;
                     else
-                        parsingTable[A][b] += "|" + rhsStr;  // ✅ append conflict
+                        parsingTable[A][b] += "|" + rhsStr; // conflict
                 }
             }
         }
     }
 
-    cout << "✅ LL(1) Table construction complete.\n";
+    OUT("✅ LL(1) Table construction complete.\n");
 }
 
-
 // ==========================================================
-// 🧩 Compute FIRST(α) where α is a RHS symbol sequence
+// 🧩 Compute FIRST(α)
 // ==========================================================
 set<string> LL1Parser::computeFirstOfString(const vector<string> &rhs) const {
     set<string> result;
@@ -76,7 +79,7 @@ set<string> LL1Parser::computeFirstOfString(const vector<string> &rhs) const {
 }
 
 // ==========================================================
-// 🧱 Join RHS symbols into a readable string
+// 🧱 Join RHS symbols
 // ==========================================================
 string LL1Parser::join(const vector<string> &rhs, const string &sep) const {
     string out;
@@ -89,114 +92,136 @@ string LL1Parser::join(const vector<string> &rhs, const string &sep) const {
 }
 
 // ==========================================================
-// 🧠 Parse input using LL(1) Parsing Table
+// 📄 Display LL(1) Table
+// ==========================================================
+void LL1Parser::displayTable() const {
+    std::ostringstream out;
+
+    out << "\n=== LL(1) Parsing Table ===\n";
+    for (const auto &row : parsingTable)
+        for (const auto &col : row.second)
+            out << "(" << row.first << ", " << col.first
+                << ") => " << col.second << "\n";
+    out << "===========================\n";
+
+    OUT(out.str());
+}
+
+// ==========================================================
+// 🧠 Parse input
 // ==========================================================
 void LL1Parser::parse(const std::vector<std::string> &tokens) const {
-    cout << "\n===== Parsing Input =====\n";
+    std::ostringstream out;
 
-    std::stack<std::string> st;
+    out << "\n===== Parsing Input =====\n";
+    out << left << setw(30) << "Stack"
+        << setw(30) << "Input"
+        << "Action\n";
+    out << string(80, '-') << "\n";
+
+    OUT(out.str());
+    out.str("");
+
+    stack<string> st;
     st.push("$");
     st.push(grammar.getStartSymbol());
 
     size_t i = 0;
-    std::string current = tokens[i];
+    string current = tokens[i];
 
-    cout << left << setw(30) << "Stack"
-         << setw(30) << "Input"
-         << "Action\n";
-    cout << string(80, '-') << "\n";
-
-    // --- Parsing loop ---
     while (!st.empty()) {
-        // ✅ Print full stack contents (top on the right)
-        std::stack<std::string> temp = st;
-        std::vector<std::string> stackContent;
-        while (!temp.empty()) {
-            stackContent.push_back(temp.top());
-            temp.pop();
+        // ---------- Build stack string ----------
+        stack<string> tmp = st;
+        vector<string> stk;
+        while (!tmp.empty()) {
+            stk.push_back(tmp.top());
+            tmp.pop();
         }
-        std::reverse(stackContent.begin(), stackContent.end());
-        std::string stackStr;
-        for (size_t j = 0; j < stackContent.size(); ++j) {
-            stackStr += stackContent[j];
-            if (j < stackContent.size() - 1)
-                stackStr += " ";
+        reverse(stk.begin(), stk.end());
+
+        string stackStr;
+        for (size_t j = 0; j < stk.size(); ++j) {
+            stackStr += stk[j];
+            if (j + 1 < stk.size()) stackStr += " ";
         }
 
-        // ✅ Build remaining input string
-        std::string inputStr;
-        for (size_t j = i; j < tokens.size(); ++j) {
+        // ---------- Build input string ----------
+        string inputStr;
+        for (size_t j = i; j < tokens.size(); j++) {
             inputStr += tokens[j];
-            if (j < tokens.size() - 1)
-                inputStr += " ";
+            if (j + 1 < tokens.size()) inputStr += " ";
         }
 
-        // Display current parser state
-        cout << setw(30) << stackStr
+        ostringstream line;
+        line << setw(30) << stackStr
              << setw(30) << inputStr;
 
-        std::string top = st.top();
+        string top = st.top();
 
         // Case 1: Match terminal
         if (top == current) {
             st.pop();
             i++;
             current = (i < tokens.size()) ? tokens[i] : "$";
-            cout << "Match " << top << "\n";
+            line << "Match " << top << "\n";
         }
-        // Case 2: Unexpected terminal
         else if (grammar.isTerminal(top)) {
-            cout << "❌ Error: unexpected terminal '" << top << "'\n";
+            line << "❌ Error: unexpected terminal '" << top << "'\n";
+            OUT(line.str());
             return;
         }
-        // Case 3: Non-terminal — consult table
         else {
-            auto rowIt = parsingTable.find(top);
-            if (rowIt == parsingTable.end()) {
-                cout << "❌ Error: no entry for non-terminal '" << top << "'\n";
+            auto row = parsingTable.find(top);
+            if (row == parsingTable.end()) {
+                line << "❌ Error: no entry for non-terminal '" << top << "'\n";
+                OUT(line.str());
                 return;
             }
 
-            auto colIt = rowIt->second.find(current);
-            if (colIt == rowIt->second.end()) {
-                cout << "❌ Error: no rule for (" << top << ", " << current << ")\n";
+            auto col = row->second.find(current);
+            if (col == row->second.end()) {
+                line << "❌ Error: no rule for (" << top << ", " << current << ")\n";
+                OUT(line.str());
                 return;
             }
 
-            std::string rhs = colIt->second;
-            cout << top << " → " << rhs << "\n";
+            string rhs = col->second;
+            line << top << " → " << rhs << "\n";
+
             st.pop();
 
-            // Push RHS symbols in reverse order (ignore ε)
             if (rhs != "ε") {
-                std::vector<std::string> symbols = tokenize(rhs);
+                vector<string> symbols = tokenize(rhs);
                 for (auto it = symbols.rbegin(); it != symbols.rend(); ++it)
                     st.push(*it);
             }
         }
+
+        OUT(line.str());
     }
 
-    cout << "\n✅ Parsing complete: Input accepted!\n";
+    OUT("\n✅ Parsing complete: Input accepted!\n");
 }
 
-
 // ==========================================================
-// 🪓 Tokenize RHS string
+// 🪓 Tokenizer
 // ==========================================================
 vector<string> LL1Parser::tokenize(const string &s) const {
-    vector<string> tokens;
-    string token;
+    vector<string> out;
+    string t;
+
     for (char c : s) {
         if (isspace(c)) {
-            if (!token.empty()) {
-                tokens.push_back(token);
-                token.clear();
+            if (!t.empty()) {
+                out.push_back(t);
+                t.clear();
             }
         } else {
-            token += c;
+            t += c;
         }
     }
-    if (!token.empty())
-        tokens.push_back(token);
-    return tokens;
+    if (!t.empty())
+        out.push_back(t);
+
+    return out;
 }

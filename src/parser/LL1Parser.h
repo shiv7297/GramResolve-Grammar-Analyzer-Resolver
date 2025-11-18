@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
+
 #include "../grammar/Grammar.h"
 #include "../analysis/FirstFollow.h"
 
@@ -17,42 +18,35 @@ private:
     std::map<std::string, std::map<std::string, std::string>> parsingTable; // Table[NonTerm][Term] = RHS
 
 public:
-    // Default constructor (if needed for temporary instances)
-    LL1Parser() = delete; // disallow empty construction
+    // Default constructor (disallowed)
+    LL1Parser() = delete;
 
-    // Constructor binds grammar and first/follow engine
+    // Constructor binds grammar and FIRST/FOLLOW engine
     LL1Parser(const Grammar &g, const FirstFollowEngine &f)
         : grammar(g), ff(f) {}
 
-     const std::map<std::string, std::map<std::string, std::string>>& getTable() const {
+    // Accessor for table
+    const std::map<std::string, std::map<std::string, std::string>>& getTable() const {
         return parsingTable;
     }
 
-    // 🧱 Build LL(1) parsing table (no args needed; uses internal grammar + ff)
+    // 🧱 Build LL(1) parsing table
     void buildTable();
 
-    // 🧩 Compute FIRST(α) where α is a RHS symbol sequence
+    // 🧩 Compute FIRST(α)
     std::set<std::string> computeFirstOfString(const std::vector<std::string> &rhs) const;
 
-    // 🪓 Join RHS symbols into a readable string
-    std::string join(const std::vector<std::string> &rhs,
-                     const std::string &sep) const;
+    // 🪓 Join RHS symbols
+    std::string join(const std::vector<std::string> &rhs, const std::string &sep) const;
 
-    // ⚙️ Parse a token sequence using this table
+    // ⚙️ Parse token sequence
     void parse(const std::vector<std::string> &tokens) const;
 
-    // 🧰 Split input string into tokens
+    // 🧰 Tokenize string
     std::vector<std::string> tokenize(const std::string &input) const;
 
-    // 🖨️ Display parsing table
-    void displayTable() const {
-        std::cout << "\n=== LL(1) Parsing Table ===\n";
-        for (const auto &row : parsingTable)
-            for (const auto &col : row.second)
-                std::cout << "(" << row.first << ", " << col.first
-                          << ") => " << col.second << "\n";
-        std::cout << "===========================\n";
-    }
+    // 🖨️ Display LL(1) Parsing Table (Declaration Only!)
+    void displayTable() const;   // <---- FIXED
 };
 
 #endif

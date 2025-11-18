@@ -1,4 +1,6 @@
 #include "FirstFollow.h"
+#include "../report/reportWriter.h"
+#include <sstream>
 #include <iostream>
 #include <queue>
 #include <algorithm>
@@ -137,32 +139,43 @@ bool FirstFollowEngine::isNullable(const std::string &symbol) const {
 // ======================================================
 // 🖨️ Display FIRST and FOLLOW sets
 // ======================================================
+
 void FirstFollowEngine::display() const {
-    cout << "\n===== FIRST & FOLLOW Sets =====\n";
+    std::ostringstream out;
 
-    cout << "\nFIRST sets:\n";
+    out << "\n===== FIRST & FOLLOW Sets =====\n";
+
+    // FIRST sets
+    out << "\nFIRST sets:\n";
     for (const auto &p : FIRST) {
-        cout << "FIRST(" << p.first << ") = { ";
+        out << "FIRST(" << p.first << ") = { ";
         bool first = true;
         for (const auto &sym : p.second) {
-            if (!first) cout << ", ";
-            cout << sym;
+            if (!first) out << ", ";
+            out << sym;
             first = false;
         }
-        cout << " }\n";
+        out << " }\n";
     }
 
-    cout << "\nFOLLOW sets:\n";
+    // FOLLOW sets
+    out << "\nFOLLOW sets:\n";
     for (const auto &p : FOLLOW) {
-        cout << "FOLLOW(" << p.first << ") = { ";
+        out << "FOLLOW(" << p.first << ") = { ";
         bool first = true;
         for (const auto &sym : p.second) {
-            if (!first) cout << ", ";
-            cout << sym;
+            if (!first) out << ", ";
+            out << sym;
             first = false;
         }
-        cout << " }\n";
+        out << " }\n";
     }
 
-    cout << "===============================\n";
+    out << "===============================\n";
+
+    // Print to terminal
+    cout << out.str();
+
+    // Save to report file
+    ReportWriter::get() << out.str();
 }

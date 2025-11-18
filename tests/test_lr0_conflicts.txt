@@ -1,2 +1,2 @@
-S → E
-E → E + E | id
+S -> A A
+A -> a A | a

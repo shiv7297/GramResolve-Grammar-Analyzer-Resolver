@@ -1,4 +1,5 @@
 #include "conflictDetector.h"
+#include "../report/reportWriter.h"
 #include <sstream>
 #include <set>
 #include <regex>
@@ -94,31 +95,46 @@ vector<Conflict> ConflictDetector::detectLRConflicts(
 // Display detected conflicts
 // ---------------------------------------------------------------
 void ConflictDetector::displayConflicts(const vector<Conflict> &conflicts) {
+    std::ostringstream out;
+
     if (conflicts.empty()) {
-        cout << "✅ No conflicts detected!\n";
+        out << "✅ No conflicts detected!\n";
+
+        // Print + Save
+        cout << out.str();
+        ReportWriter::get() << out.str();
         return;
     }
 
-    cout << "\n⚠️  Conflicts detected:\n";
-    cout << left << setw(30) << "Type"
-         << setw(25) << "Location"
-         << "Details\n";
-    cout << string(80, '-') << "\n";
+    out << "\n⚠️  Conflicts detected:\n";
+    out << left << setw(30) << "Type"
+        << setw(25) << "Location"
+        << "Details\n";
+    out << string(80, '-') << "\n";
 
     for (const auto &c : conflicts) {
-        cout << left << setw(30) << c.type
-             << setw(25) << c.location;
+        out << left << setw(30) << c.type
+            << setw(25) << c.location;
+
         if (!c.details.empty())
-            cout << c.details[0];
-        cout << "\n";
+            out << c.details[0];
+
+        out << "\n";
 
         for (size_t i = 1; i < c.details.size(); ++i)
-            cout << setw(55) << " " << c.details[i] << "\n";
+            out << setw(55) << " " << c.details[i] << "\n";
     }
 
-    cout << string(80, '-') << "\n";
-    cout << "Total Conflicts: " << conflicts.size() << "\n";
+    out << string(80, '-') << "\n";
+    out << "Total Conflicts: " << conflicts.size() << "\n";
+
+    // Print to terminal
+    cout << out.str();
+
+    // Save to report file
+    ReportWriter::get() << out.str();
 }
+
 
 
 

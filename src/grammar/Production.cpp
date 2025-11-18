@@ -1,26 +1,43 @@
 #include "Production.h"
+#include "../report/reportWriter.h"
 #include <iostream>
+#include <sstream>
 
 using namespace std;
 
-/// Add a new right-hand side alternative
+// ===============================================================
+// Add a new RHS alternative
+// ===============================================================
 void Production::addAlternative(const vector<string> &alt) {
     rhs.push_back(alt);
 }
 
-/// Convert production to string (used in Grammar::display)
+// ===============================================================
+// Convert production to readable string
+// ===============================================================
 string Production::toString() const {
-    string out = lhs + " -> ";
+    std::ostringstream out;
+
+    out << lhs << " -> ";
+
     for (size_t i = 0; i < rhs.size(); ++i) {
-        for (const auto &sym : rhs[i])
-            out += sym + " ";
+        for (const auto &sym : rhs[i]) {
+            out << sym;
+            if (&sym != &rhs[i].back())
+                out << " ";
+        }
         if (i < rhs.size() - 1)
-            out += "| ";
+            out << " | ";
     }
-    return out;
+
+    return out.str();
 }
 
-/// Print production nicely to console
+// ===============================================================
+// Display production (terminal + report)
+// ===============================================================
 void Production::display() const {
-    cout << toString() << endl;
+    string line = toString() + "\n";
+    cout << line;
+    ReportWriter::get() << line;
 }

@@ -1,4 +1,5 @@
 #include "Grammar.h"
+#include "../report/reportWriter.h"
 #include <fstream>
 #include <sstream>
 #include <algorithm>
@@ -154,27 +155,35 @@ bool Grammar::loadFromFile(const string &filename) {
 // ============================================
 
 void Grammar::display() const {
-    cout << "===== Grammar =====\n";
-    cout << "Start Symbol: " << startSymbol << "\n\nProductions:\n";
+    std::ostringstream out;
+
+    out << "===== Grammar =====\n";
+    out << "Start Symbol: " << startSymbol << "\n\nProductions:\n";
 
     for (const auto &p : productions)
-        cout << p.toString() << "\n";
+        out << p.toString() << "\n";
 
-    cout << "\nNon-terminals (" << nonTerminals.size() << "): ";
+    out << "\nNon-terminals (" << nonTerminals.size() << "): ";
     bool first = true;
     for (const auto &nt : nonTerminals) {
-        if (!first) cout << ", ";
-        cout << nt;
+        if (!first) out << ", ";
+        out << nt;
         first = false;
     }
 
-    cout << "\nTerminals (" << terminals.size() << "): ";
+    out << "\nTerminals (" << terminals.size() << "): ";
     first = true;
     for (const auto &t : terminals) {
-        if (!first) cout << ", ";
-        cout << t;
+        if (!first) out << ", ";
+        out << t;
         first = false;
     }
 
-    cout << "\n===================\n";
+    out << "\n===================\n";
+
+    // Print to terminal
+    cout << out.str();
+
+    // Save to report file
+    ReportWriter::get() << out.str();
 }

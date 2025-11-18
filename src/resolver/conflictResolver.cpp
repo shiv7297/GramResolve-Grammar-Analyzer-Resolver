@@ -4,54 +4,101 @@
 // ===============================================================
 
 #include "conflictResolver.h"
+#include "../report/reportWriter.h"
 #include <iostream>
 #include <iomanip>
+#include <sstream>
+
 using namespace std;
 
+// ===============================================================
+// Main resolver function
+// ===============================================================
 void ConflictResolver::resolveConflicts(
     const vector<Conflict> &conflicts,
     const Grammar &grammar
 ) {
+    std::ostringstream out;
+
     if (conflicts.empty()) {
-        cout << "✅ No conflicts to resolve.\n";
+        out << "✅ No conflicts to resolve.\n";
+        cout << out.str();
+        ReportWriter::get() << out.str();
         return;
     }
 
-    cout << "\n🧩 Attempting to resolve or explain conflicts...\n";
-    cout << string(80, '=') << "\n";
+    out << "\n🧩 Attempting to resolve or explain conflicts...\n";
+    out << string(80, '=') << "\n";
+
+    cout << out.str();
+    ReportWriter::get() << out.str();
+    out.str("");
 
     for (const auto &c : conflicts) {
-        cout << "🔹 Conflict Type: " << c.type << "\n";
-        cout << "   Location: " << c.location << "\n";
+        std::ostringstream block;
 
+        block << "🔹 Conflict Type: " << c.type << "\n";
+        block << "   Location: " << c.location << "\n";
+
+        // LL(1) or LR conflict?
         if (c.type.find("LL(1)") != string::npos)
-            explainLL1Conflict(c, grammar);
+            appendLL1Explanation(block, c, grammar);
         else
-            explainLRConflict(c);
+            appendLRExplanation(block, c);
 
-        cout << string(80, '-') << "\n";
+        block << string(80, '-') << "\n";
+
+        cout << block.str();
+        ReportWriter::get() << block.str();
     }
 }
 
-void ConflictResolver::explainLL1Conflict(const Conflict &c, const Grammar &grammar) {
-    cout << "   🔸 Likely Cause: Overlapping FIRST/FOLLOW sets or ambiguous productions.\n";
-    cout << "   🔧 Suggestion: Try left-factoring or eliminating ε-productions.\n";
-    cout << "   Productions involved:\n";
+// ===============================================================
+// Produce explanation for LL(1) conflicts
+// ===============================================================
+void ConflictResolver::appendLL1Explanation(
+    std::ostringstream &out,
+    const Conflict &c,
+    const Grammar &grammar
+) {
+    out << "   🔸 Likely Cause: Overlapping FIRST/FOLLOW sets or ambiguous productions.\n";
+    out << "   🔧 Suggested Fixes:\n";
+    out << "      • Try left-factoring to eliminate common prefixes.\n";
+    out << "      • Remove or restructure ε-productions that cause overlap.\n";
+    out << "      • Ensure FIRST(A) ∩ FOLLOW(A) = ∅ when A → ε exists.\n";
+
+    out << "   Productions involved:\n";
     for (const string &d : c.details)
-        cout << "      → " << d << "\n";
+        out << "      → " << d << "\n";
 }
 
-void ConflictResolver::explainLRConflict(const Conflict &c) {
-    cout << "   🔸 Likely Cause: Ambiguous grammar or missing operator precedence.\n";
+// ===============================================================
+// Produce explanation for LR conflicts
+// ===============================================================
+void ConflictResolver::appendLRExplanation(
+    std::ostringstream &out,
+    const Conflict &c
+) {
+    out << "   🔸 Likely Cause: Grammar ambiguity or insufficient lookahead.\n";
 
-    if (c.type.find("Shift/Reduce") != string::npos)
-        cout << "   🔧 Suggestion: Add precedence/associativity rules or refactor grammar.\n";
-    else if (c.type.find("Reduce/Reduce") != string::npos)
-        cout << "   🔧 Suggestion: Remove duplicate reductions or refactor similar productions.\n";
-    else
-        cout << "   🔧 Suggestion: Check your state transitions and item closures.\n";
+    if (c.type.find("Shift/Reduce") != string::npos) {
+        out << "   🔧 Suggested Fixes:\n";
+        out << "      • Add operator precedence or associativity rules.\n";
+        out << "      • Refactor grammar to avoid constructs like dangling-else.\n";
+        out << "      • Remove ambiguity by rewriting productions.\n";
+    }
+    else if (c.type.find("Reduce/Reduce") != string::npos) {
+        out << "   🔧 Suggested Fixes:\n";
+        out << "      • Ensure only one valid reduction can occur for each lookahead.\n";
+        out << "      • Split or reorganize overlapping productions.\n";
+    }
+    else {
+        out << "   🔧 Suggested Fixes:\n";
+        out << "      • Inspect closure and GOTO computations.\n";
+        out << "      • Check if FOLLOW sets cause conflicting reduce placements.\n";
+    }
 
-    cout << "   Actions involved:\n";
+    out << "   Actions involved:\n";
     for (const string &d : c.details)
-        cout << "      → " << d << "\n";
+        out << "      → " << d << "\n";
 }

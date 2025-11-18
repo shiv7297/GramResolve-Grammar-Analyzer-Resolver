@@ -10,13 +10,21 @@ CXXFLAGS = -std=c++17 -Iinclude -Isrc -Wall -Wextra
 SRC_DIR = src
 BUILD_DIR = build
 BIN = text.exe
+REPORT_DIR = src/report
+REPORT_FILE = $(REPORT_DIR)/report.txt
 
-# Source files (all .cpp files under src/)
-SRCS = $(wildcard $(SRC_DIR)/**/*.cpp) $(wildcard $(SRC_DIR)/*.cpp)
+# Find all .cpp files recursively
+SRCS = $(shell find $(SRC_DIR) -name '*.cpp')
 OBJS = $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%.o,$(SRCS))
 
 # Default target
-all: $(BIN)
+all: prepare_report $(BIN)
+
+# Prepare report file (clear it)
+prepare_report:
+	@mkdir -p $(REPORT_DIR)
+	@echo "📝 Clearing old report..."
+	@> $(REPORT_FILE)
 
 # Link all object files into the final executable
 $(BIN): $(OBJS)
@@ -24,21 +32,26 @@ $(BIN): $(OBJS)
 	$(CXX) $(OBJS) -o $(BIN)
 	@echo "✅ Build complete: $(BIN)"
 
-# Compile each .cpp to .o
+# Compile each .cpp into .o file inside build folder
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@mkdir -p $(dir $@)
 	@echo "🧱 Compiling $<..."
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-# Run the program
-run: $(BIN)
+# Run program after building
+run: all
 	@echo "🚀 Running program..."
 	./$(BIN)
 
-# Clean up build artifacts
+# Explicit target to only regenerate report without rebuilding
+report:
+	@mkdir -p $(REPORT_DIR)
+	@echo "📝 Resetting report..."
+	@> $(REPORT_FILE)
+
+# Clean build and executable
 clean:
 	@echo "🧹 Cleaning build files..."
-	rm -rf $(BUILD_DIR) $(BIN)
+	rm -rf $(BUILD_DIR) $(BIN) $(REPORT_FILE)
 
-# Phony targets (not actual files)
-.PHONY: all run clean
+.PHONY: all run clean report prepare_report

@@ -6,6 +6,7 @@
 #include <map>
 #include <set>
 #include <algorithm>
+#include "../report/reportWriter.h"
 #include <sstream>
 
 using namespace std;
@@ -26,7 +27,11 @@ const map<int, map<string, string>>& LR0Parser::getACTION() const {
 // Build Canonical Collection of LR(0) Items
 // ===================================================
 void LR0Parser::buildAutomaton() {
-    cout << "\n🔧 Building LR(0) Automaton (with SLR reduce placement)...\n";
+    std::ostringstream out;
+    out << "\n🔧 Building LR(0) Automaton (with SLR reduce placement)...\n";
+    cout << out.str();
+    ReportWriter::get() << out.str();
+    out.str("");
 
     FirstFollowEngine ff;
     ff.computeFIRST(grammar);
@@ -64,23 +69,24 @@ void LR0Parser::buildAutomaton() {
                 found = newState.id;
             }
 
-            // ✅ SHIFT / GOTO conflict-friendly storage
+            // SHIFT / GOTO
             if (g2.isTerminal(sym)) {
                 string act = "s" + to_string(found);
                 if (ACTION[i][sym].empty())
                     ACTION[i][sym] = act;
                 else
-                    ACTION[i][sym] += "|" + act;  // append for multiple actions
+                    ACTION[i][sym] += "|" + act;
             } else {
                 GOTO[i][sym] = found;
             }
         }
     }
 
-    // Step 3: Add reduce/accept actions
+    // Add reduce/accept actions
     for (size_t i = 0; i < states.size(); ++i) {
         for (const auto &item : states[i].items) {
             if (item.dot == item.rhs.size()) {
+
                 if (item.lhs == augmented) {
                     ACTION[i]["$"] = "acc";
                 } else {
@@ -95,16 +101,17 @@ void LR0Parser::buildAutomaton() {
                         if (ACTION[i][t].empty())
                             ACTION[i][t] = act;
                         else
-                            ACTION[i][t] += "|" + act;  // ✅ combine conflicts
+                            ACTION[i][t] += "|" + act;
                     }
                 }
             }
         }
     }
 
-    cout << "✅ LR(0)/SLR Automaton built with " << states.size() << " states.\n";
+    out << "✅ LR(0)/SLR Automaton built with " << states.size() << " states.\n";
+    cout << out.str();
+    ReportWriter::get() << out.str();
 }
-
 
 // ===================================================
 // Compute closure(I)
@@ -122,11 +129,11 @@ set<LRItem> LR0Parser::closure(set<LRItem> I, const Grammar &g) {
                     for (const auto &p : g.getProductions()) {
                         if (p.getLHS() == B) {
                             for (const auto &alt : p.getRHS()) {
-                                // ✅ Handle epsilon properly
+
                                 vector<string> rhs = alt;
                                 if (rhs.size() == 1 && rhs[0] == "ε")
                                     rhs.clear();
-                                
+
                                 LRItem newItem = {B, rhs, 0};
                                 if (newItems.insert(newItem).second)
                                     changed = true;
@@ -162,7 +169,8 @@ set<LRItem> LR0Parser::GOTOset(const set<LRItem> &I, const string &X, const Gram
 set<string> LR0Parser::collectSymbols(const LRState &state, const Grammar &g) {
     set<string> symbols;
     for (const auto &item : state.items) {
-        if (item.dot < item.rhs.size()) symbols.insert(item.rhs[item.dot]);
+        if (item.dot < item.rhs.size())
+            symbols.insert(item.rhs[item.dot]);
     }
     return symbols;
 }
@@ -171,28 +179,42 @@ set<string> LR0Parser::collectSymbols(const LRState &state, const Grammar &g) {
 // Check if a state already exists
 // ===================================================
 int LR0Parser::findState(const set<LRItem> &items) const {
-    for (size_t i = 0; i < states.size(); ++i) {
+    for (size_t i = 0; i < states.size(); ++i)
         if (states[i].items == items)
             return static_cast<int>(i);
-    }
     return -1;
 }
 
 // ===================================================
-// Display canonical collection of LR(0) items
+// Display canonical states
 // ===================================================
 void LR0Parser::displayStates() const {
-    cout << "\n===== Canonical Collection of LR(0) Items =====\n";
-    for (const auto &st : states) {
-        cout << st.toString() << "\n";
-    }
+    std::ostringstream out;
+
+    out << "\n===== Canonical Collection of LR(0) Items =====\n";
+    for (const auto &st : states)
+        out << st.toString() << "\n";
+    out << "===============================================\n";
+
+    cout << out.str();
+    ReportWriter::get() << out.str();
 }
 
 // ===================================================
-// Simulate LR(0) parsing
+// LR Parsing Simulation
 // ===================================================
 void LR0Parser::parse(const vector<string> &tokens) {
-    cout << "\n===== Parsing Input (LR(0)) =====\n";
+    std::ostringstream out;
+
+    out << "\n===== Parsing Input (LR(0)) =====\n";
+    out << left << setw(40) << "Stack (States + Symbols)"
+        << setw(25) << "Input"
+        << "Action\n";
+    out << string(90, '-') << "\n";
+
+    cout << out.str();
+    ReportWriter::get() << out.str();
+    out.str("");
 
     stack<int> stateStack;
     stack<string> symbolStack;
@@ -201,33 +223,35 @@ void LR0Parser::parse(const vector<string> &tokens) {
     size_t i = 0;
     string a = tokens[i];
 
-    cout << left << setw(40) << "Stack (States + Symbols)"
-         << setw(25) << "Input"
-         << "Action\n";
-    cout << string(90, '-') << "\n";
-
     while (true) {
         int s = stateStack.top();
         string act = ACTION[s][a];
 
-        cout << setw(40) << fullStackToString(stateStack, symbolStack)
+        std::ostringstream line;
+        line << setw(40) << fullStackToString(stateStack, symbolStack)
              << setw(25) << remainingInput(tokens, i);
 
         if (act.empty()) {
-            cout << "❌ Error: no action for (" << s << ", " << a << ")\n";
+            line << "❌ Error: no action for (" << s << ", " << a << ")\n";
+            cout << line.str();
+            ReportWriter::get() << line.str();
             return;
         }
 
+        // SHIFT
         if (act[0] == 's') {
             int next = stoi(act.substr(1));
-            cout << "Shift and go to state " << next << "\n";
+            line << "Shift and go to state " << next << "\n";
 
             symbolStack.push(a);
             stateStack.push(next);
 
             i++;
             a = tokens[i];
-        } else if (act[0] == 'r') {
+        }
+
+        // REDUCE
+        else if (act[0] == 'r') {
             string rule = act.substr(1);
             size_t arrow = rule.find("->");
             string A = rule.substr(0, arrow);
@@ -240,9 +264,9 @@ void LR0Parser::parse(const vector<string> &tokens) {
                 rhs.push_back(sym);
 
             if (rhs.empty())
-                cout << "Reduce by " << A << " -> ε\n";
+                line << "Reduce by " << A << " -> ε\n";
             else
-                cout << "Reduce by " << A << " -> " << rhsPart << "\n";
+                line << "Reduce by " << A << " -> " << rhsPart << "\n";
 
             for (size_t j = 0; j < rhs.size(); ++j) {
                 if (!rhs[j].empty() && rhs[j] != "ε") {
@@ -256,18 +280,31 @@ void LR0Parser::parse(const vector<string> &tokens) {
 
             symbolStack.push(A);
             stateStack.push(next);
-        } else if (act == "acc") {
-            cout << "✅ Accept!\n";
+        }
+
+        // ACCEPT
+        else if (act == "acc") {
+            line << "✅ Accept!\n";
+            cout << line.str();
+            ReportWriter::get() << line.str();
             break;
-        } else {
-            cout << "❌ Unknown action: " << act << "\n";
+        }
+
+        // UNKNOWN
+        else {
+            line << "❌ Unknown action: " << act << "\n";
+            cout << line.str();
+            ReportWriter::get() << line.str();
             return;
         }
+
+        cout << line.str();
+        ReportWriter::get() << line.str();
     }
 }
 
 // ===================================================
-// Helper: Combine states + symbols into readable string
+// Helpers
 // ===================================================
 string LR0Parser::fullStackToString(stack<int> stateStack, stack<string> symbolStack) {
     vector<pair<int, string>> temp;
@@ -282,14 +319,12 @@ string LR0Parser::fullStackToString(stack<int> stateStack, stack<string> symbolS
     string result;
     for (auto &[state, sym] : temp) {
         result += to_string(state);
-        if (!sym.empty()) result += " " + sym + " ";
+        if (!sym.empty())
+            result += " " + sym + " ";
     }
     return result;
 }
 
-// ===================================================
-// Helper: Show remaining input
-// ===================================================
 string LR0Parser::remainingInput(const vector<string> &tokens, size_t i) {
     string s;
     for (size_t k = i; k < tokens.size(); ++k)
@@ -297,9 +332,6 @@ string LR0Parser::remainingInput(const vector<string> &tokens, size_t i) {
     return s;
 }
 
-// ===================================================
-// Helper: Stack to string
-// ===================================================
 string LR0Parser::stackToString(stack<int> st) {
     vector<int> temp;
     while (!st.empty()) {
