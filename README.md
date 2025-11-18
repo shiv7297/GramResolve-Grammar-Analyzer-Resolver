@@ -24,6 +24,9 @@ This project implements a complete **Context-Free Grammar Analysis and Parsing T
 - Building **SLR(0) Action/GOTO tables**  
 - Simulating **LR parsing with stack tracing**  
 - Detecting **LL(1), LR(0), and SLR parsing conflicts**  
+- Detailed **conflict explanations & suggestions**  
+- Automatic logging to **src/report/report.txt** 
+
 
 The project is designed to provide deep insight into grammar behavior and parsing table construction, helping identify ambiguities and structural issues in grammars.
 
@@ -34,7 +37,7 @@ The project is designed to provide deep insight into grammar behavior and parsin
 
 ```bash
 
-📦 GramResolve
+📦 GramResolve-Grammar-Analyzer-Resolver
 │
 ├── 📁 src
 │   ├── 📁 grammar
@@ -52,19 +55,26 @@ The project is designed to provide deep insight into grammar behavior and parsin
 │   ├── 📁 resolver
 │   │    └── conflictResolver.h / conflictResolver.cpp
 │   │
-│   ├── 📁 visualizer
-│   │    └── (future UI / report generation modules)
+│   ├── 📁 report
+│   │    ├── reportWriter.h / reportWriter.cpp
+│   │    └── report.txt
 │   │
-│   └── main.cpp   ← Entry point of the project
+│   └── main.cpp
 │
 ├── 📁 data
-│   └── sample_grammar.txt   ← Input grammar file
+│   ├── sample_grammar.txt
+│   ├── test_grammar1.txt
+│   └── ambiguous_grammar.txt
 │
 ├── 📁 tests
-│   └── additional grammars & inputs
+│   ├── test_LL1_conflicts.txt
+│   ├── test_LR0_conflicts.txt
+│   ├── test_First_Follow.txt
+│   └── parseTable.h
 │
 ├── Makefile
 └── README.md
+
 
 
 ```
@@ -74,16 +84,20 @@ The project is designed to provide deep insight into grammar behavior and parsin
 ## 🧠 System Features
 
 ### ✔ FIRST & FOLLOW Computation  
-The system parses input CFG and generates FIRST and FOLLOW sets for all non-terminals.
+- Handles ε-productions  
+- Detects nullable symbols 
+- Complete FIRST(α) propagation
+- FOLLOW propagation using classical algorithm
 
 ---
 
 ### ✔ LL(1) Parsing Table Construction  
 Automatically generates the LL(1) table and reports:
 
-- Multiple-entry conflicts  
-- Missing entries  
-- Ambiguous productions  
+- FIRST/FIRST entry detection
+- FIRST/FOLLOW collision detection
+- ε-based propagation rules
+- Multi-entry warnings (LL(1) conflicts) 
 
 ---
 
