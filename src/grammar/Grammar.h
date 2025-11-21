@@ -9,13 +9,6 @@
 #include "Production.h"
 using namespace std;
 
-/**
- * @class Grammar
- * @brief Represents a formal grammar (used by analyzers & parsers)
- *
- * Handles reading grammar from file, storing productions,
- * classifying terminals/non-terminals, and providing helper utilities.
- */
 class Grammar {
 private:
     vector<Production> productions;     // All grammar rules

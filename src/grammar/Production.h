@@ -6,13 +6,6 @@
 #include <string>
 using namespace std;
 
-/**
- * @class Production
- * @brief Represents a grammar production rule (e.g., E -> E + T | T)
- *
- * Each production has a left-hand side (non-terminal) and
- * one or more right-hand side alternatives (each a sequence of symbols).
- */
 class Production {
 private:
     string lhs;  // Left-hand side non-terminal
