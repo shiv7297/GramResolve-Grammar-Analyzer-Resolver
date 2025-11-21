@@ -55,7 +55,9 @@ void LR0Parser::buildAutomaton() {
     // Canonical collection
     while (!q.empty()) {
         int i = q.front(); q.pop();
-        set<string> symbols = collectSymbols(states[i], g2);
+
+        // FIXED: removed unused Grammar parameter
+        set<string> symbols = collectSymbols(states[i]);
 
         for (const string &sym : symbols) {
             set<LRItem> gotoItems = GOTOset(states[i].items, sym, g2);
@@ -69,7 +71,6 @@ void LR0Parser::buildAutomaton() {
                 found = newState.id;
             }
 
-            // SHIFT / GOTO
             if (g2.isTerminal(sym)) {
                 string act = "s" + to_string(found);
                 if (ACTION[i][sym].empty())
@@ -85,8 +86,8 @@ void LR0Parser::buildAutomaton() {
     // Add reduce/accept actions
     for (size_t i = 0; i < states.size(); ++i) {
         for (const auto &item : states[i].items) {
-            if (item.dot == item.rhs.size()) {
 
+            if (item.dot == item.rhs.size()) {
                 if (item.lhs == augmented) {
                     ACTION[i]["$"] = "acc";
                 } else {
@@ -118,6 +119,7 @@ void LR0Parser::buildAutomaton() {
 // ===================================================
 set<LRItem> LR0Parser::closure(set<LRItem> I, const Grammar &g) {
     bool changed = true;
+
     while (changed) {
         changed = false;
         set<LRItem> newItems = I;
@@ -125,16 +127,18 @@ set<LRItem> LR0Parser::closure(set<LRItem> I, const Grammar &g) {
         for (const auto &item : I) {
             if (item.dot < item.rhs.size()) {
                 string B = item.rhs[item.dot];
+
                 if (g.isNonTerminal(B)) {
                     for (const auto &p : g.getProductions()) {
                         if (p.getLHS() == B) {
                             for (const auto &alt : p.getRHS()) {
-
                                 vector<string> rhs = alt;
+
                                 if (rhs.size() == 1 && rhs[0] == "ε")
                                     rhs.clear();
 
                                 LRItem newItem = {B, rhs, 0};
+
                                 if (newItems.insert(newItem).second)
                                     changed = true;
                             }
@@ -145,6 +149,7 @@ set<LRItem> LR0Parser::closure(set<LRItem> I, const Grammar &g) {
         }
         I = newItems;
     }
+
     return I;
 }
 
@@ -153,6 +158,7 @@ set<LRItem> LR0Parser::closure(set<LRItem> I, const Grammar &g) {
 // ===================================================
 set<LRItem> LR0Parser::GOTOset(const set<LRItem> &I, const string &X, const Grammar &g) {
     set<LRItem> J;
+
     for (const auto &item : I) {
         if (item.dot < item.rhs.size() && item.rhs[item.dot] == X) {
             LRItem moved = item;
@@ -160,28 +166,32 @@ set<LRItem> LR0Parser::GOTOset(const set<LRItem> &I, const string &X, const Gram
             J.insert(moved);
         }
     }
+
     return closure(J, g);
 }
 
 // ===================================================
-// Collect all symbols that can appear after a dot
+// FIXED: Collect symbols — no unused parameter
 // ===================================================
-set<string> LR0Parser::collectSymbols(const LRState &state, const Grammar &g) {
+set<string> LR0Parser::collectSymbols(const LRState &state) const {
     set<string> symbols;
+
     for (const auto &item : state.items) {
         if (item.dot < item.rhs.size())
             symbols.insert(item.rhs[item.dot]);
     }
+
     return symbols;
 }
 
 // ===================================================
-// Check if a state already exists
+// Check if state already exists
 // ===================================================
 int LR0Parser::findState(const set<LRItem> &items) const {
     for (size_t i = 0; i < states.size(); ++i)
         if (states[i].items == items)
             return static_cast<int>(i);
+
     return -1;
 }
 
@@ -194,6 +204,7 @@ void LR0Parser::displayStates() const {
     out << "\n===== Canonical Collection of LR(0) Items =====\n";
     for (const auto &st : states)
         out << st.toString() << "\n";
+
     out << "===============================================\n";
 
     cout << out.str();
@@ -241,6 +252,7 @@ void LR0Parser::parse(const vector<string> &tokens) {
         // SHIFT
         if (act[0] == 's') {
             int next = stoi(act.substr(1));
+
             line << "Shift and go to state " << next << "\n";
 
             symbolStack.push(a);
@@ -254,6 +266,7 @@ void LR0Parser::parse(const vector<string> &tokens) {
         else if (act[0] == 'r') {
             string rule = act.substr(1);
             size_t arrow = rule.find("->");
+
             string A = rule.substr(0, arrow);
             string rhsPart = rule.substr(arrow + 2);
 
@@ -308,12 +321,15 @@ void LR0Parser::parse(const vector<string> &tokens) {
 // ===================================================
 string LR0Parser::fullStackToString(stack<int> stateStack, stack<string> symbolStack) {
     vector<pair<int, string>> temp;
+
     while (!stateStack.empty()) {
         string sym = symbolStack.empty() ? "" : symbolStack.top();
         temp.push_back({stateStack.top(), sym});
+
         stateStack.pop();
         if (!symbolStack.empty()) symbolStack.pop();
     }
+
     reverse(temp.begin(), temp.end());
 
     string result;
@@ -322,25 +338,32 @@ string LR0Parser::fullStackToString(stack<int> stateStack, stack<string> symbolS
         if (!sym.empty())
             result += " " + sym + " ";
     }
+
     return result;
 }
 
 string LR0Parser::remainingInput(const vector<string> &tokens, size_t i) {
     string s;
+
     for (size_t k = i; k < tokens.size(); ++k)
         s += tokens[k] + " ";
+
     return s;
 }
 
 string LR0Parser::stackToString(stack<int> st) {
     vector<int> temp;
+
     while (!st.empty()) {
         temp.push_back(st.top());
         st.pop();
     }
+
     reverse(temp.begin(), temp.end());
+
     string s;
     for (int v : temp)
         s += to_string(v) + " ";
+
     return s;
 }

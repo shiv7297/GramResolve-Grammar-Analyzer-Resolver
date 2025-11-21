@@ -11,13 +11,15 @@
 #include "../grammar/Grammar.h"
 #include "../analysis/FirstFollow.h"
 
+using namespace std;
+
 // ===============================================================
 // Struct: LRItem
 // Represents an LR(0) item [A → α • β]
 // ===============================================================
 struct LRItem {
-    std::string lhs;
-    std::vector<std::string> rhs;
+    string lhs;
+    vector<string> rhs;
     size_t dot; // position of dot
 
     bool operator<(const LRItem &other) const {
@@ -30,8 +32,8 @@ struct LRItem {
         return lhs == other.lhs && rhs == other.rhs && dot == other.dot;
     }
 
-    std::string toString() const {
-        std::string s = lhs + " → ";
+    string toString() const {
+        string s = lhs + " → ";
         if (rhs.empty()) {
             s += "• (ε)";
         } else {
@@ -51,15 +53,16 @@ struct LRItem {
 // ===============================================================
 struct LRState {
     int id;
-    std::set<LRItem> items;
+    set<LRItem> items;
 
     bool operator==(const LRState &other) const {
         return items == other.items;
     }
 
-    std::string toString() const {
-        std::string s = "State " + std::to_string(id) + ":\n";
-        for (auto &item : items) s += "  " + item.toString() + "\n";
+    string toString() const {
+        string s = "State " + to_string(id) + ":\n";
+        for (auto &item : items)
+            s += "  " + item.toString() + "\n";
         return s;
     }
 };
@@ -71,10 +74,10 @@ struct LRState {
 class LR0Parser {
 private:
     const Grammar &grammar;
-    std::vector<LRState> states;
+    vector<LRState> states;
 
-    std::map<int, std::map<std::string, std::string>> ACTION; // ACTION[state][symbol]
-    std::map<int, std::map<std::string, int>> GOTO;           // GOTO[state][NonTerminal]
+    map<int, map<string, string>> ACTION;  // ACTION[state][symbol]
+    map<int, map<string, int>> GOTO;       // GOTO[state][NonTerminal]
 
 public:
     explicit LR0Parser(const Grammar &g);
@@ -86,22 +89,25 @@ public:
     void displayStates() const;
 
     // Run parser simulation
-    void parse(const std::vector<std::string> &tokens);
+    void parse(const vector<string> &tokens);
 
     // Accessor for ACTION table
-    const std::map<int, std::map<std::string, std::string>>& getACTION() const;
+    const map<int, map<string, string>>& getACTION() const;
 
 private:
     // LR(0) core helper functions
-    std::set<LRItem> closure(std::set<LRItem> I, const Grammar &g);
-    std::set<LRItem> GOTOset(const std::set<LRItem> &I, const std::string &X, const Grammar &g);
-    std::set<std::string> collectSymbols(const LRState &state, const Grammar &g);
-    int findState(const std::set<LRItem> &items) const;
+    set<LRItem> closure(set<LRItem> I, const Grammar &g);
+    set<LRItem> GOTOset(const set<LRItem> &I, const string &X, const Grammar &g);
+
+    // FIXED: removed unused Grammar parameter
+    set<string> collectSymbols(const LRState &state) const;
+
+    int findState(const set<LRItem> &items) const;
 
     // Stack + display helpers
-    std::string fullStackToString(std::stack<int> stateStack, std::stack<std::string> symbolStack);
-    std::string remainingInput(const std::vector<std::string> &tokens, size_t i);
-    std::string stackToString(std::stack<int> st);
+    string fullStackToString(stack<int> stateStack, stack<string> symbolStack);
+    string remainingInput(const vector<string> &tokens, size_t i);
+    string stackToString(stack<int> st);
 };
 
 #endif

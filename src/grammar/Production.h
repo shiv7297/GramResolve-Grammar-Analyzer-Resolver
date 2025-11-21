@@ -4,6 +4,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
+using namespace std;
 
 /**
  * @class Production
@@ -14,24 +15,24 @@
  */
 class Production {
 private:
-    std::string lhs;  // Left-hand side non-terminal
-    std::vector<std::vector<std::string>> rhs;  // List of right-hand side alternatives
+    string lhs;  // Left-hand side non-terminal
+    vector<std::vector<std::string>> rhs;  // List of right-hand side alternatives
 
 public:
     /// Default + parameterized constructor
-    explicit Production(const std::string &left = "") : lhs(left) {}
+    explicit Production(const string &left = "") : lhs(left) {}
 
     /// Add an alternative RHS (e.g., {"E", "+", "T"})
-    void addAlternative(const std::vector<std::string> &alt);
+    void addAlternative(const vector<std::string> &alt);
 
     /// Get left-hand side non-terminal
-    const std::string &getLHS() const { return lhs; }
+    const string &getLHS() const { return lhs; }
 
     /// Get all RHS alternatives
-    const std::vector<std::vector<std::string>> &getRHS() const { return rhs; }
+    const vector<std::vector<std::string>> &getRHS() const { return rhs; }
 
     /// Convert the production to a readable string form (for display)
-    std::string toString() const;
+    string toString() const;
 
     /// Display directly to console
     void display() const;

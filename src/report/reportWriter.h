@@ -4,9 +4,11 @@
 #include <fstream>
 #include <string>
 
+using namespace std;
+
 class ReportWriter {
 private:
-    std::ofstream file;
+    ofstream file;
 
     // Private constructor (Singleton)
     ReportWriter();
@@ -19,7 +21,7 @@ public:
     static ReportWriter& get();
 
     // Append text to report
-    ReportWriter& operator<<(const std::string &text);
+    ReportWriter& operator<<(const string &text);
 
     // Clear the report (start fresh)
     void clear();

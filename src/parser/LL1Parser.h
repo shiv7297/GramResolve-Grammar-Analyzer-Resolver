@@ -10,12 +10,14 @@
 #include "../grammar/Grammar.h"
 #include "../analysis/FirstFollow.h"
 
+using namespace std;
+
 // 🔷 LL(1) Parser generator and simulator
 class LL1Parser {
 private:
     const Grammar &grammar;             // Reference to the grammar
     const FirstFollowEngine &ff;        // Reference to FIRST/FOLLOW sets
-    std::map<std::string, std::map<std::string, std::string>> parsingTable; // Table[NonTerm][Term] = RHS
+    map<string, map<string, string>> parsingTable; // Table[NonTerm][Term] = RHS
 
 public:
     // Default constructor (disallowed)
@@ -26,7 +28,7 @@ public:
         : grammar(g), ff(f) {}
 
     // Accessor for table
-    const std::map<std::string, std::map<std::string, std::string>>& getTable() const {
+    const map<string, map<string, string>>& getTable() const {
         return parsingTable;
     }
 
@@ -34,16 +36,16 @@ public:
     void buildTable();
 
     // 🧩 Compute FIRST(α)
-    std::set<std::string> computeFirstOfString(const std::vector<std::string> &rhs) const;
+    set<string> computeFirstOfString(const vector<string> &rhs) const;
 
     // 🪓 Join RHS symbols
-    std::string join(const std::vector<std::string> &rhs, const std::string &sep) const;
+    string join(const vector<string> &rhs, const string &sep) const;
 
     // ⚙️ Parse token sequence
-    void parse(const std::vector<std::string> &tokens) const;
+    void parse(const vector<string> &tokens) const;
 
     // 🧰 Tokenize string
-    std::vector<std::string> tokenize(const std::string &input) const;
+    vector<string> tokenize(const string &input) const;
 
     // 🖨️ Display LL(1) Parsing Table (Declaration Only!)
     void displayTable() const;   // <---- FIXED

@@ -1,13 +1,15 @@
 #include "reportWriter.h"
 #include <iostream>
 
+using namespace std;
+
 // ======================================
 // Constructor — Opens report file
 // ======================================
 ReportWriter::ReportWriter() {
-    file.open("src/report/report.txt", std::ios::app);
+    file.open("src/report/report.txt", ios::app);
     if (!file.is_open()) {
-        std::cerr << "❌ Failed to open src/report/report.txt for writing.\n";
+        cerr << "❌ Failed to open src/report/report.txt for writing.\n";
     }
 }
 
@@ -31,7 +33,7 @@ ReportWriter& ReportWriter::get() {
 // ======================================
 // Append text to report file
 // ======================================
-ReportWriter& ReportWriter::operator<<(const std::string &text) {
+ReportWriter& ReportWriter::operator<<(const string &text) {
     if (file.is_open()) {
         file << text;
         file.flush();              // flush after each write
@@ -47,8 +49,8 @@ void ReportWriter::clear() {
         file.close();
     }
 
-    file.open("src/report/report.txt", std::ios::trunc);
+    file.open("src/report/report.txt", ios::trunc);
     if (!file.is_open()) {
-        std::cerr << "❌ Failed to clear report file.\n";
+        cerr << "❌ Failed to clear report file.\n";
     }
 }

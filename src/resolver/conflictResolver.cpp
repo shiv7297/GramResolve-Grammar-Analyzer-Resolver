@@ -16,9 +16,9 @@ using namespace std;
 // ===============================================================
 void ConflictResolver::resolveConflicts(
     const vector<Conflict> &conflicts,
-    const Grammar &grammar
+    const Grammar &/* grammar */
 ) {
-    std::ostringstream out;
+    ostringstream out;
 
     if (conflicts.empty()) {
         out << "✅ No conflicts to resolve.\n";
@@ -35,14 +35,14 @@ void ConflictResolver::resolveConflicts(
     out.str("");
 
     for (const auto &c : conflicts) {
-        std::ostringstream block;
+        ostringstream block;
 
         block << "🔹 Conflict Type: " << c.type << "\n";
         block << "   Location: " << c.location << "\n";
 
         // LL(1) or LR conflict?
         if (c.type.find("LL(1)") != string::npos)
-            appendLL1Explanation(block, c, grammar);
+            appendLL1Explanation(block, c);
         else
             appendLRExplanation(block, c);
 
@@ -57,9 +57,8 @@ void ConflictResolver::resolveConflicts(
 // Produce explanation for LL(1) conflicts
 // ===============================================================
 void ConflictResolver::appendLL1Explanation(
-    std::ostringstream &out,
-    const Conflict &c,
-    const Grammar &grammar
+    ostringstream &out,
+    const Conflict &c
 ) {
     out << "   🔸 Likely Cause: Overlapping FIRST/FOLLOW sets or ambiguous productions.\n";
     out << "   🔧 Suggested Fixes:\n";
@@ -76,7 +75,7 @@ void ConflictResolver::appendLL1Explanation(
 // Produce explanation for LR conflicts
 // ===============================================================
 void ConflictResolver::appendLRExplanation(
-    std::ostringstream &out,
+    ostringstream &out,
     const Conflict &c
 ) {
     out << "   🔸 Likely Cause: Grammar ambiguity or insufficient lookahead.\n";

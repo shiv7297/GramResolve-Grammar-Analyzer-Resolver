@@ -14,28 +14,30 @@
 #include "../grammar/Grammar.h"
 #include "../analysis/FirstFollow.h"
 
+using namespace std;
+
 struct Conflict {
-    std::string type;      // e.g., "LL(1) MULTIPLE ENTRIES" or "Shift/Reduce"
-    std::string location;  // e.g., "(E, id)" or "(State 3, +)"
-    std::vector<std::string> details; // Conflicting entries
+    string type;               // conflict type
+    string location;           // (NonTerminal, Terminal) or (State, Symbol)
+    vector<string> details;    // conflicting rules/actions
 };
 
 class ConflictDetector {
 public:
+
     // Detect LL(1) conflicts (multiple productions in same cell)
-    static std::vector<Conflict> detectLL1Conflicts(
-        const Grammar &grammar,
-        const FirstFollowEngine &ff,
-        const std::map<std::string, std::map<std::string, std::string>> &table
+    // ⚠️ Clean version: removed unused Grammar & FirstFollowEngine parameters
+    static vector<Conflict> detectLL1Conflicts(
+        const map<string, map<string, string>> &table
     );
 
     // Detect LR(0)/SLR conflicts from ACTION table
-    static std::vector<Conflict> detectLRConflicts(
-        const std::map<int, std::map<std::string, std::string>> &ACTION
+    static vector<Conflict> detectLRConflicts(
+        const map<int, map<string, string>> &ACTION
     );
 
     // Nicely print detected conflicts
-    static void displayConflicts(const std::vector<Conflict> &conflicts);
+    static void displayConflicts(const vector<Conflict> &conflicts);
 };
 
 #endif

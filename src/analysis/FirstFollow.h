@@ -6,6 +6,7 @@
 #include <set>
 #include <string>
 #include "../grammar/Grammar.h"
+using namespace std;
 
 // ============================================================
 // Class: FirstFollowEngine
@@ -13,9 +14,9 @@
 // ============================================================
 class FirstFollowEngine {
 private:
-    std::map<std::string, std::set<std::string>> FIRST;
-    std::map<std::string, std::set<std::string>> FOLLOW;
-    std::map<std::string, bool> NULLABLE;
+    map<string, set<string>> FIRST;
+    map<string, set<string>> FOLLOW;
+    map<string, bool> NULLABLE;
 
 public:
     FirstFollowEngine() = default;
@@ -25,9 +26,9 @@ public:
     void computeFOLLOW(const Grammar &g);
 
     // 📦 Accessors
-    const std::set<std::string>& getFIRST(const std::string &symbol) const;
-    const std::set<std::string>& getFOLLOW(const std::string &symbol) const;
-    bool isNullable(const std::string &symbol) const;
+    const set<string>& getFIRST(const string &symbol) const;
+    const set<string>& getFOLLOW(const string &symbol) const;
+    bool isNullable(const string &symbol) const;
 
     // 🖨️ Display results
     void display() const;

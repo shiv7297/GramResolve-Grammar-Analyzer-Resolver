@@ -106,10 +106,11 @@ int main() {
         ReportWriter::get() << out.str();
     }
 
-    // ---------- LL(1) Conflict Detection ----------
-    auto ll1Conflicts = ConflictDetector::detectLL1Conflicts(
-        grammar, ff, ll1Parser.getTable()
-    );
+  // ---------- LL(1) Conflict Detection ----------
+auto ll1Conflicts = ConflictDetector::detectLL1Conflicts(
+    ll1Parser.getTable()
+);
+
 
     {
         std::ostringstream out;
