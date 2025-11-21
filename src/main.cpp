@@ -1,6 +1,5 @@
 // ===============================================================
 // File: main.cpp
-// Description: Driver for Grammar Analyzer, LL(1) & LR(0) Parsers
 // ===============================================================
 
 #include "grammar/Grammar.h"
